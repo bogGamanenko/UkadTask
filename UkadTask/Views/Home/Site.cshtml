@@ -1,0 +1,52 @@
+﻿@model SiteViewModel
+
+@{
+    ViewBag.Title = "Site Perfomance";
+}
+
+<div class="panel panel-default" id="chart_panel">
+    <div class="panel-heading"><h4>Chart</h4></div>
+    <div class="panel-body" id="column_chart">
+    </div>
+</div>
+
+@if (Model.Urls.Count > 0)
+{
+    <h3>Site Map</h3>
+            <div id="sitemap">
+                <table class="table">
+                    <tbody>
+                        @foreach (var item in Model.Urls)
+                        {
+                            <tr>
+                                <td>@item</td>
+                                <td>
+                                    @using (Ajax.BeginForm("TestUrl",
+                                             new AjaxOptions
+                                             {
+                                                 UpdateTargetId = "test_results",
+                                                 OnSuccess = "updateChart"
+                                             }))
+                                    {
+                                        <input type="hidden" name="url" value="@item" />
+                                        <input type="submit" value="Test" class="btn btn-primary btn-xs"/>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+}
+else
+{
+    <h4> Sorry, but we can't get site map for this web site.</h4>
+}
+
+<div id="test_results">
+    @if (Model.TestedUrls.Count > 0)
+            {
+        <script>updateChart();</script>
+                @Html.Partial("_TestedUrls", Model.TestedUrls)
+    }
+</div>

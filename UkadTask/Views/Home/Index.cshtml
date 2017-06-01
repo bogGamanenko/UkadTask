@@ -1,0 +1,15 @@
+﻿@model SiteUrl
+
+@{
+    ViewBag.Title = "Home";
+}
+
+<h4>Enter the site's URL<br /><small>For example http://www.ukad-group.com</small></h4>
+
+@using (Html.BeginForm("Site", "Home", FormMethod.Post))
+{    
+    @Html.TextBoxFor(x => x.Url, new { placeholder = "URL", id = "search" })    
+    <input type="submit" value="Go" class="btn btn-primary btn-sm"/>
+    @Html.ValidationMessageFor(x => x.Url)
+}
+
