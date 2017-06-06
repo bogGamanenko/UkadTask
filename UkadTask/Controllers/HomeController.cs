@@ -8,11 +8,13 @@
     using System.Web.Mvc;
     using Infrastructure;
     using Models;
+    using System.Threading.Tasks;
 
     public class HomeController : Controller
     {
         const string testedUrlsKey = "testedUrlsKey";
         const string historyKey = "historyKey";
+        const string erroMessage = " [Bad Request!]";
 
         private static Dictionary<string, List<string>> cachedUrls = new Dictionary<string, List<string>>();
 
@@ -52,14 +54,14 @@
         }
 
         public ActionResult Index()
-        {            
+        {
             return this.View();
         }
 
         [HttpPost]
-        public ActionResult Site(SiteUrl siteUrl)
-        {
-            if(this.ModelState.IsValid)
+        public async Task<ActionResult> Site(SiteUrl siteUrl)
+        {            
+            if (this.ModelState.IsValid)
             {
                 List<string> urls;
 
@@ -69,7 +71,11 @@
                 }
                 else
                 {
-                    urls = SiteMapParser.GetSiteMapUrls(siteUrl.Url);
+                    urls = SiteMapParser.GetUrlsFromXml(siteUrl.Url);
+                    if (urls.Count == 0)
+                    {
+                        urls = await SiteMapParser.GetUrlsFromHtml(siteUrl.Url);
+                    }
                     cachedUrls[siteUrl.Url] = urls;
                 }
 
@@ -85,7 +91,7 @@
             else
             {
                 return this.View("Index", siteUrl);
-            }            
+            }
         }
 
         public ActionResult History()
@@ -100,30 +106,39 @@
         {
             var timer = new Stopwatch();
             var request = WebRequest.Create(url);
+            TimeSpan responseTime;
 
-            timer.Start();
-            request.GetResponse();
-            timer.Stop();
+            try
+            {
+                timer.Start();
+                request.GetResponse();
+                timer.Stop();
+                responseTime = timer.Elapsed;
+            }
+            catch(Exception)
+            {
+                url += erroMessage;
+                responseTime = TimeSpan.FromMilliseconds(0);
+            }
 
-            this.AddHistory(url, timer.Elapsed);
-
+            this.AddHistory(url, responseTime);
             var urls = this.GetTestedUrls();
             var testedUrl = urls.FirstOrDefault(u => u.Url == url);
 
             if(testedUrl != null)
             {
-                if(testedUrl.RequestTimeMin > timer.Elapsed)
+                if(testedUrl.RequestTimeMin > responseTime)
                 {               
-                    testedUrl.RequestTimeMin = timer.Elapsed;
+                    testedUrl.RequestTimeMin = responseTime;
                 }
-                else if(testedUrl.RequestTimeMax < timer.Elapsed)
+                else if(testedUrl.RequestTimeMax < responseTime)
                 {
-                    testedUrl.RequestTimeMax = timer.Elapsed;
+                    testedUrl.RequestTimeMax = responseTime;
                 }
             }
             else
             {
-                testedUrl = new TestedUrl(url, timer.Elapsed);
+                testedUrl = new TestedUrl(url, responseTime);
                 urls.Add(testedUrl);
             }
 
@@ -139,6 +154,13 @@
                               .ToList();            
    
             return this.Json(results, JsonRequestBehavior.AllowGet);
+        }
+
+        public JsonResult CheckUrl(string url)
+        {
+            var result = Uri.IsWellFormedUriString(url, UriKind.Absolute);
+            
+            return this.Json(result, JsonRequestBehavior.AllowGet);
         }
     }
 }

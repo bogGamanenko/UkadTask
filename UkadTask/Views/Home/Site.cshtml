@@ -19,7 +19,7 @@
                         @foreach (var item in Model.Urls)
                         {
                             <tr>
-                                <td>@item</td>
+                                <td class="url-column">@item</td>
                                 <td>
                                     @using (Ajax.BeginForm("TestUrl",
                                              new AjaxOptions
@@ -29,7 +29,7 @@
                                              }))
                                     {
                                         <input type="hidden" name="url" value="@item" />
-                                        <input type="submit" value="Test" class="btn btn-primary btn-xs"/>
+                                        <input type="submit" value="Test" class="pull-right btn btn-primary btn-xs"/>
                                     }
                                 </td>
                             </tr>
